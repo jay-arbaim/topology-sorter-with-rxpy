@@ -3,12 +3,11 @@ from queue import Queue
 from graphlib import TopologicalSorter
 
 from functools import partial
-from .worker_manager import WorkerManager
+from taskmanager.worker_manager import WorkerManager
 
 class TaskManager:
     def __init__(self):
         self.node_list = []
-        self.topology = {}
         self.topology_sorter = TopologicalSorter()
         self.prepared_task_queue = Queue()
         self.finished_task_queue = Queue()
@@ -19,17 +18,14 @@ class TaskManager:
         if from_node not in self.node_list or to_node not in self.node_list:
             raise ValueError("node is not in node_list")
         # check input and output format for connection
-        for output_format in from_node.output_format:
-            for input_format in to_node.input_format:
-                if input_format["name"] == output_format["name"] and input_format["type"] == output_format["type"] and input_format["shape"] == output_format["shape"]:
+        for pin_output in [pin for pin in from_node.pins if pin.direction == "output"]:
+            for pin_input in [pin for pin in to_node.pins if pin.direction == "input"]:
+                if pin_output.validate_connection(pin_input):
+                    pin_output.connect(pin_input)
                     break
             else:
                 raise ValueError("from_node and to_node are not compatible")
         self.topology_sorter.add(to_node, from_node)
-        if from_node in self.topology.keys():
-            self.topology[from_node].append(to_node)
-        else:
-            self.topology[from_node] = [to_node]
     def validate_topology(self):
         self.topology_sorter.prepare()
     def run(self):
