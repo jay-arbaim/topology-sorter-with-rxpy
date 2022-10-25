@@ -55,6 +55,9 @@ class TaskManager:
                     self.topology_sorter.done(node)
                     print("Finished task: {}".format(node.name))
                 worker_manager.add_task(partial(node_task_and_post_task, node))
+                while self.finished_task_queue.get():
+                    if(self.finished_task_queue.empty()):
+                        break
     def get_task_output(self):
         return self.result
 
